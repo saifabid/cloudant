@@ -48,7 +48,7 @@ func (db *DB) newRequest() *gorequest.SuperAgent {
 	return gorequest.New().SetBasicAuth(db.Username, db.Password)
 }
 
-// Insert inserts a doccument
+// Insert inserts a doccument and returns the rev of the doccument created
 func (db *DB) Insert(doc interface{}) (string, error) {
 	url := fmt.Sprintf("%s/%s", db.Host, db.Database)
 	req := db.newRequest()
@@ -82,7 +82,7 @@ func (db *DB) GetByID(id string, params map[string]string) ([]byte, error) {
 	return body, nil
 }
 
-// Update will update a single doccument with the new doccument
+// Update will update a single doccument with the new doccument and returns the rev of the doccument updated
 func (db *DB) Update(id string, doc interface{}) (string, error) {
 	url := fmt.Sprintf("%s/%s/%s", db.Host, db.Database, id)
 	req := db.newRequest()
