@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"strings"
+
 	"github.com/parnurzeal/gorequest"
 )
 
@@ -51,20 +53,63 @@ func (db *DB) newRequest() *gorequest.SuperAgent {
 func (db *DB) Insert(doc interface{}) (string, error) {
 	url := fmt.Sprintf("%s/%s", db.Host, db.Database)
 	req := db.newRequest()
-	resp, _, errs := req.Post(url).SendStruct(doc).End()
+	_, body, errs := req.Post(url).SendStruct(doc).EndBytes()
 	if errs != nil {
 		return "", errs[0]
 	}
 
 	type respJSON struct {
-		Rev string `json:"_rev"`
+		Rev string `json:"rev"`
 	}
 
 	var respBody respJSON
-	err := json.NewDecoder(resp.Body).Decode(&respBody)
+	err := json.Unmarshal(body, &respBody)
 	if err != nil {
 		return "", err
 	}
 
 	return respBody.Rev, nil
+}
+
+// GetByID gets a single doccument by it's _id
+func (db *DB) GetByID(id string, params map[string]string) ([]byte, error) {
+	url := fmt.Sprintf("%s/%s/%s?%s", db.Host, db.Database, id, mapToQueryString(params))
+	req := db.newRequest()
+	_, body, errs := req.Get(url).EndBytes()
+	if errs != nil {
+		return nil, errs[0]
+	}
+
+	return body, nil
+}
+
+// Update will update a single doccument with the new doccument
+func (db *DB) Update(id string, doc interface{}) (string, error) {
+	url := fmt.Sprintf("%s/%s/%s", db.Host, db.Database, id)
+	req := db.newRequest()
+	_, body, errs := req.Put(url).SendStruct(doc).EndBytes()
+	if errs != nil {
+		return "", errs[0]
+	}
+
+	type respJSON struct {
+		Rev string `json:"rev"`
+	}
+
+	var respBody respJSON
+	err := json.Unmarshal(body, &respBody)
+	if err != nil {
+		return "", err
+	}
+
+	return respBody.Rev, nil
+}
+
+func mapToQueryString(m map[string]string) string {
+	var q string
+	for k, v := range m {
+		q = q + fmt.Sprintf("%s=%s&", k, v)
+	}
+
+	return strings.Trim(q, "&")
 }
