@@ -3,7 +3,6 @@ package cloudant
 import (
 	"encoding/json"
 	"fmt"
-
 	"strings"
 
 	"github.com/parnurzeal/gorequest"
@@ -103,6 +102,18 @@ func (db *DB) Update(id string, doc interface{}) (string, error) {
 	}
 
 	return respBody.Rev, nil
+}
+
+// Delete will delete a doccument
+func (db *DB) Delete(id, rev string) error {
+	url := fmt.Sprintf("%s/%s/%s?rev=%s", db.Host, db.Database, id, rev)
+	req := db.newRequest()
+	_, _, errs := req.Delete(url).End()
+	if errs != nil {
+		return errs[0]
+	}
+
+	return nil
 }
 
 func mapToQueryString(m map[string]string) string {
