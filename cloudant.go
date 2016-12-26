@@ -40,6 +40,7 @@ type Query struct {
 
 // Err defines the interface met by by API Errors or any other errors while using this package
 type Err interface {
+	Error() string
 	Message() map[string]string
 	StatusCode() int
 }
@@ -47,6 +48,11 @@ type Err interface {
 // PkgError defines any errors which are not returned from cloudant
 type PkgError struct {
 	err error
+}
+
+// Error returns the error reason as a string
+func (p PkgError) Error() string {
+	return p.err.Error()
 }
 
 // Message returns the error as a map
@@ -65,6 +71,15 @@ func (p PkgError) StatusCode() int {
 type APIError struct {
 	message        map[string]string
 	httpStatusCode int
+}
+
+// Error returns the cloudant response error reason
+func (a APIError) Error() string {
+	if a.message["reason"] == "" {
+		return "unknown error, check Message() method"
+	}
+
+	return a.message["reason"]
 }
 
 // Message returns the cloudant response body unmarhsaled into a map when the response is not 2xx
