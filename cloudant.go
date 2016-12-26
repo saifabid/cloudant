@@ -90,7 +90,7 @@ func (db *DB) GetByID(id string, params map[string]string) ([]byte, error) {
 		return nil, errs[0]
 	}
 
-	if resp.StatusCode%100 != 2 {
+	if resp.StatusCode/100 != 2 {
 		var v map[string]string
 		err := json.Unmarshal(body, &v)
 		if err != nil {
