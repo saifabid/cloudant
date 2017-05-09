@@ -157,6 +157,29 @@ func (db *DB) Delete(id, rev string) error {
 	return nil
 }
 
+// Query performs a cloudant query call
+func (db *DB) Query(params interface{}) ([]byte, error) {
+	url := fmt.Sprintf("%s/%s/_find", db.Host, db.Database)
+	req := db.newRequest()
+
+	resp, body, errs := req.Post(url).SendStruct(params).EndBytes()
+	if errs != nil {
+		return nil, errs[0]
+	}
+
+	if resp.StatusCode/100 != 2 {
+		var v map[string]string
+		err := json.Unmarshal(body, &v)
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, errors.New(string(body))
+	}
+
+	return body, nil
+}
+
 func mapToQueryString(m map[string]string) string {
 	var q string
 	for k, v := range m {
