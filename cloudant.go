@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/parnurzeal/gorequest"
@@ -82,7 +83,7 @@ func (db *DB) Insert(doc interface{}) (string, error) {
 }
 
 // GetByID gets a single doccument by it's _id
-func (db *DB) GetByID(id string, params map[string]string) ([]byte, error) {
+func (db *DB) GetByID(id string, params map[string]interface{}) ([]byte, error) {
 	url := fmt.Sprintf("%s/%s/%s?%s", db.Host, db.Database, id, mapToQueryString(params))
 	req := db.newRequest()
 	resp, body, errs := req.Get(url).EndBytes()
@@ -180,10 +181,65 @@ func (db *DB) Query(params interface{}) ([]byte, error) {
 	return body, nil
 }
 
-func mapToQueryString(m map[string]string) string {
+// View gets data from a view
+func (db *DB) View(ddoc string, iName string, q map[string]interface{}) ([]byte, error) {
+	url := fmt.Sprintf("%s/%s/_design/%s/_view/%s?%s", db.Host, db.Database, ddoc, iName, mapToQueryString(q))
+	req := db.newRequest()
+
+	resp, body, errs := req.Get(url).EndBytes()
+	if errs != nil {
+		return nil, errs[0]
+	}
+
+	if resp.StatusCode/100 != 2 {
+		var v map[string]string
+		err := json.Unmarshal(body, &v)
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, errors.New(string(body))
+	}
+
+	return body, nil
+}
+
+// Search performs a lucene search
+func (db *DB) Search(ddoc string, iName string, q map[string]interface{}) ([]byte, error) {
+	url := fmt.Sprintf("%s/%s/_design/%s/_search/%s?%s", db.Host, db.Database, ddoc, iName, mapToQueryString(q))
+	req := db.newRequest()
+
+	resp, body, errs := req.Get(url).EndBytes()
+	if errs != nil {
+		return nil, errs[0]
+	}
+
+	if resp.StatusCode/100 != 2 {
+		var v map[string]string
+		err := json.Unmarshal(body, &v)
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, errors.New(string(body))
+	}
+
+	return body, nil
+}
+
+func mapToQueryString(m map[string]interface{}) string {
 	var q string
 	for k, v := range m {
-		q = q + fmt.Sprintf("%s=%s&", k, v)
+		switch v := v.(type) {
+		case string:
+			q = q + fmt.Sprintf("%s=%s&", k, url.QueryEscape(v))
+		case int32, int64:
+			q = q + fmt.Sprintf("%s=%d&", k, v)
+		case bool:
+			q = q + fmt.Sprintf("%s=%t&", k, v)
+		default:
+			q = q + fmt.Sprintf("%s=%s&", k, v)
+		}
 	}
 
 	return strings.Trim(q, "&")
