@@ -232,6 +232,9 @@ func mapToQueryString(m map[string]interface{}) string {
 	for k, v := range m {
 		switch v := v.(type) {
 		case string:
+			if v == "" {
+				continue
+			}
 			q = q + fmt.Sprintf("%s=%s&", k, url.QueryEscape(v))
 		case int32, int64:
 			q = q + fmt.Sprintf("%s=%d&", k, v)
